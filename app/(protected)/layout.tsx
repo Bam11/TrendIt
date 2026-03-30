@@ -1,8 +1,10 @@
 "use client"
 
 import React, { useEffect } from 'react'
+import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from '../context/AuthContext'
-import { useRouter } from 'next/router';
+import Header from '../components/header'
+import Nav from '../components/nav'
 
 export default function ProtectedLayout({
   children,
@@ -11,6 +13,7 @@ export default function ProtectedLayout({
 }) {
   const { user, isAuthLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
@@ -29,7 +32,7 @@ export default function ProtectedLayout({
 
         <button
           onClick={() => router.push("/login")}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-4 py-2 bg-linear-to-r from-[#3182ce] to-[#8e24aa] text-white rounded cursor-pointer"
         >
           Proceed to Login
         </button>
@@ -37,11 +40,20 @@ export default function ProtectedLayout({
     );
   }
 
+  const hideLayout = pathname.startsWith("/reels");
+
   return (
-    <div className="">
-      <main>
-        {children}
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50">
+
+      {!hideLayout && <Header />}
+
+      <main className={`${hideLayout ? "pt-0 pb-0" : "pt-16 pb-20 "} min-h-screen`}>
+        <div className="max-w-93.75 mx-auto">
+          {children}
+        </div>
       </main>
+
+      {!hideLayout && <Nav />}
     </div>
   )
 }

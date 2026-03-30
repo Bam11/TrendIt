@@ -28,11 +28,11 @@ export type post = {
   caption: string;
   media: string;
   media_type: "image" | "video";
-  advanced_settings: {
-    hideLikes: boolean;
-    turnOffComments: boolean;
-    shareToFacebook: boolean;
-  };
+  // advanced_settings: {
+  //   hideLikes: boolean;
+  //   turnOffComments: boolean;
+  //   shareToFacebook: boolean;
+  // };
   
   author: {
     id: number;
@@ -44,5 +44,17 @@ export type post = {
     updated_at: string;
     auth_user_id: string;
   };
-  collaborators?: Collaborator[];
+};
+
+export type UserProfile = {
+  id: string;
+  full_name: string;
+  username: string;
+  bio: string;
+  website: string;
+  phone: string;
+  gender: string;
+  image: string;
+  created_at: string;
+  updated_at: string;
 };
