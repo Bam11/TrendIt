@@ -1,10 +1,11 @@
-  import React, { useCallback, useEffect, useRef, useState } from 'react'
+  "use client"
+  
+  import React, { useEffect, useRef, useState } from 'react'
   import { AnimatePresence, motion } from 'motion/react'
   import Image from 'next/image'
   import { ChevronLeft, ChevronRight, Heart, MoreVertical, Pause, Play, Send, X } from 'lucide-react'
   import { Feed } from '@stream-io/feeds-client';
   import moment from 'moment';
-import { useAuth } from '@/app/context/AuthContext';
 
   // type StoryItem = {
   //   id: number,
