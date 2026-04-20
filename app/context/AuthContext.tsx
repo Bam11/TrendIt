@@ -7,7 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react"
-import { redirect, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/app/lib/supabase/client"
 import type { AuthUser, Session } from "@supabase/supabase-js"
 import axios from "axios"
@@ -45,50 +45,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(null);
           setIsAuthLoading(false);
           router.push("/login");
+          return;
         }
         try {
-          if (!user?.user_metadata.get_stream_token) {
-            const client = new FeedsClient(process.env.NEXT_PUBLIC_GETSTREAM_API_KEY!);
-            const response = await axios.get("/api/get_stream/create-token");
-            if (response.data && user?.id) {
-              const token = response.data.token;
+          const client = new FeedsClient(process.env.NEXT_PUBLIC_GETSTREAM_API_KEY!);
+          const response = await axios.get("/api/get_stream/create-token");
+          const token = response.data.token;
 
-              await client.connectUser(
-                {
-                  id: user?.id,
-                  custom: {
-                    full_name: user?.user_metadata.full_name,
-                  },
-                  name: user?.user_metadata.username,
-                  image: user?.user_metadata.avatar_url
-                },
-                token,
-              );
-              setClient(client);
-            }
-          } else {
-            const client = new FeedsClient(process.env.NEXT_PUBLIC_GETSTREAM_API_KEY!);
-            await client.connectUser(
-              { id: user.id },
-              user.user_metadata.get_stream_token,
-            );
-            setClient(client)
-          }
-        } catch (error: any) {
-          if(error?.toString()?.includes("token is expired")){
-            const response = await axios.get("/api/get_stream/create-token");
-            if (response.data && user?.id) {
-              const token = response.data.token;
-              const client = new FeedsClient(process.env.NEXT_PUBLIC_GETSTREAM_API_KEY!);
-              await client.connectUser(
-                {id: user?.id,},
-                token,
-              );
-              setClient(client);
-            }
-          } else {
-            throw (error);
-          }
+          await client.connectUser(
+            {
+              id: user.id,
+              name: user.user_metadata?.username ?? user.user_metadata?.name.split(" ")?.[0] ?? "user",
+              image: user.user_metadata?.avatar_url ?? user.user_metadata?.image ??undefined,
+              custom: {
+                full_name: user.user_metadata.full_name ?? "",
+              },
+            },
+            token,
+          );
+          setClient(client);
+        } catch (error) {
+          console.error("Stream connection failed:", error);
         }
         setSession(session)
         setUser(user)

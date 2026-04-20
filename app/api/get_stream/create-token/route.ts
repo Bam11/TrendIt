@@ -9,11 +9,9 @@ export async function GET() {
   try {
     const supabase = await createClient();
 
-    const { data } = await supabase.auth.getClaims();
-    const user = data?.claims;
-    console.log("user", user);
+    const { data: {user}, error } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!user || error) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -23,11 +21,11 @@ export async function GET() {
       user_id: user.id,
     });
 
-    await supabase.auth.updateUser({
-      data: {
-        get_stream_token: token,
-      },
-    });
+    // await supabase.auth.updateUser({
+    //   data: {
+    //     get_stream_token: token,
+    //   },
+    // });
 
     return NextResponse.json({ token, userId: user.id });
   } catch (err) {

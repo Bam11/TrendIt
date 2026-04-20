@@ -15,8 +15,8 @@ const eslintConfig = defineConfig([
   ]),
 ]);
 
-const customEslintConfig = {
-  ...eslintConfig,  
-  "@typescript-eslint/no-explicit-any": "off",
-}
-export default customEslintConfig;
+// const customEslintConfig = {
+//   ...eslintConfig,  
+//   "@typescript-eslint/no-explicit-any": "off",
+// }
+export default eslintConfig;

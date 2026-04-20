@@ -65,7 +65,8 @@ export default function Nav() {
                     alt={user.user_metadata.username || "Profile"}
                     width={24}
                     height={24}
-                    className={`size-6 object-cover rounded-full ${isActive ? "border-2 border-white" : ""}`}
+                    loading="eager"
+                    className={`size-6 object-cover rounded-full bg-purple-600 ${isActive ? "border border-white" : ""}`}
                   />
                 ) : (
                   <Icon className="size-5" />
