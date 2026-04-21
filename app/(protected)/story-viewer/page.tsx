@@ -42,11 +42,11 @@ function getActorInfo(actor: StreamActor | undefined) {
   type StoryViewerProps = {
     activities: ActivityLike[];
     feed: Feed | undefined;
-    currentIndex: number;
+    currentIndex: number;   
     onClose: () => void;
     onPrev: () => void;
     onNext: () => void;
-    onMarkMatched: (activityId: string) => void;
+    onMarkMatched: (activityId: string) => void;      
   }
 
   const STORY_DURATION = 5000;
@@ -61,7 +61,7 @@ function getActorInfo(actor: StreamActor | undefined) {
     const durationMs = isVideo ? undefined : STORY_DURATION; 
     const [message, setMessage] = useState("");
 
-    const { username, avatar } = getActorInfo(activity.actor);
+    // const { username, avatar } = getActorInfo(activity.actor);
 
     // const advance = useCallback(() => {
     //   if(activity?.id && feed) onMarkMatched(activity.id);
@@ -90,7 +90,7 @@ function getActorInfo(actor: StreamActor | undefined) {
         if(video){
           const onTimeUpdate = () => {    
             if (video.duration && video.duration > 0){
-              setProgress((video.currentTime / video.duration) * 100);
+              setProgress((video.currentTime / video.duration) * 100);  
             }
           };
           const onEnded = () => advance();
@@ -250,7 +250,7 @@ function getActorInfo(actor: StreamActor | undefined) {
             </div>
 
             <div className="absolute top-5 left-0 right-0 px-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              {/* <div className="flex items-center gap-3">
                 {avatar && (
                   <Image
                     src={avatar}
@@ -264,7 +264,7 @@ function getActorInfo(actor: StreamActor | undefined) {
                   <p className="text-white font-semibold text-sm">{username}</p>
                   <p className="text-white font-semibold text-sm">{moment(activity.created_at).fromNow()}</p>
                 </div>
-              </div>
+              </div> */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsPaused(!isPaused)}

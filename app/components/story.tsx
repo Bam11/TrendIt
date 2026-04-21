@@ -144,28 +144,28 @@ export default function Story({ userAvatar, currentUserId, myStoryCount, aggrega
     }
   }, []);
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-        <div className="size-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="fixed  inset-0 bg-black flex items-center justify-center z-50">
+  //       <div className="size-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+  //     </div>
+  //   );
+  // }
 
-  if (!userId || activities.length === 0) {
-    return (
-      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-50 gap-4">
-        <p className="text-white/80 text-sm">No stories to view</p>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="text-white underline text-sm"
-        >
-          Go back
-        </button>
-      </div>
-    );
-  }
+  // if (!userId || activities.length === 0) {
+  //   return (
+  //     <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-50 gap-4">
+  //       <p className="text-white/80 text-sm">No stories to view</p>
+  //       <button
+  //         type="button"
+  //         onClick={() => router.back()}
+  //         className="text-white underline text-sm"
+  //       >
+  //         Go back
+  //       </button>
+  //     </div>
+  //   );
+  // }
 
   // const storyUser = [
   //   {

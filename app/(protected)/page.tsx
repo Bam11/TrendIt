@@ -89,12 +89,12 @@ export default function Home() {
   const userImage = user?.user_metadata.avatar_url || user?.user_metadata.picture || null;
   return (
     <div className="p-4 space-y-6">
-      <Story
+      {/* <Story
         userAvatar={userImage}
         currentUserId={user?.id}
         myStoryCount={myStoryActivities.length}
         aggregatedGroups={aggregatedStoryGroups as StoryGroup[]}
-      />
+      /> */}
       <div>
         {loading ? (
           <div className="flex items-center justify-center py-16">
