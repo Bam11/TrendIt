@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             {
               id: user.id,
               name: user.user_metadata?.username ?? user.user_metadata?.name.split(" ")?.[0] ?? "user",
-              image: user.user_metadata?.avatar_url ?? user.user_metadata?.image ??undefined,
+              image: user.user_metadata?.avatar_url ?? user.user_metadata?.image ?? user.user_metadata?.picture ?? undefined,
               custom: {
                 full_name: user.user_metadata.full_name ?? "",
               },

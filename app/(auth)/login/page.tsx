@@ -80,7 +80,7 @@ export default function Login() {
   async function handleGoogleSignIn () {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
+      options: {  
         redirectTo: `${window.location.origin}/auth/callback`,
         skipBrowserRedirect: false,
       },
@@ -161,7 +161,7 @@ export default function Login() {
                   value={formData.password}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-2.5 bg-gray-50 text-black placeholder:text-gray-700 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all pr-2
-                    ${errors.email ? "border-red-500 focus:ring-red-500" : ""}
+                    ${errors.password ? "border-red-500 focus:ring-red-500" : ""}
                   `}
                 />
                 <button

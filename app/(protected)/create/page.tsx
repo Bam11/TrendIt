@@ -159,30 +159,38 @@ export default function Create() {
           throw uploadError.message;
         }
 
-        const { data: { publicUrl } } = supabase.storage.from("trendit_posts").getPublicUrl(uploadData.path);
+        const { data: { publicUrl } } = supabase.storage
+          .from("trendit_posts")
+          .getPublicUrl(path);
+        // .getPublicUrl(uploadData.path);
         mediaUrl = publicUrl;
 
         if (!mediaUrl) {
           setSharing(false);
           return alert("Failed to upload media");
         }
-        
-        const { error } = await supabase
-          .from("post")
-          .insert([{
-            author_id: user.id,
-            caption,
-            media: mediaUrl,
-            media_type: postType,
-          }])
 
-        if(error){
-          console.error(error);
-          alert("Error Inserting Posts");
-        } else {
-          alert("Post created successfully");
-        }
       }
+
+      const { data: supabasePost, error: supabaseError } = await supabase
+        .from("post")
+        .insert([{
+          author_id: user.id,
+          caption,
+          media: mediaUrl,
+          media_type: postType,
+        }])
+        .select("id")
+        .single();
+
+      if (supabaseError) {
+        alert("Error Inserting Posts");
+        throw supabaseError;
+      } else {
+        alert("Post created successfully");
+      }
+
+      console.log("Supabase post:", supabasePost)
 
       const isReel = postType === "reel";
       // const topicTags = reelTopicTags
@@ -202,7 +210,7 @@ export default function Create() {
           },
           attachments: [{
             type: isReel ? "video" : postType,
-            ...(mediaUrl && { image_url: mediaUrl }),
+            ...(mediaUrl && { asset_url: mediaUrl, video_url: mediaUrl }),
             custom: isReel ? { content_type: "reel" } : {},
           }],
           create_notification_activity: true,
@@ -229,7 +237,17 @@ export default function Create() {
 
       const feed = client.feed("user", user.id);
 
-      const response = await feed.addActivity(createPostPayload)
+      const response = await feed.addActivity(createPostPayload);
+      console.log("GetStream activity:", response.activity);
+
+      const { data: updatedPost, error: insertError } = await supabase
+        .from("post")
+        .update({
+          stream_activity_id: response.activity.id,
+        })
+        .eq("id", supabasePost.id)
+        .select("id, stream_activity_id")
+        .single()
       // const { error: insertError } = await supabase.from("trendit_posts").insert({
       //   user_id: user.id,
       //   type: postType,
@@ -237,7 +255,18 @@ export default function Create() {
       //   media_Url: mediaUrl,
       // });
 
-      // if (insertError) throw insertError;
+      console.log("UPDATE RESULT:", {
+        updatedPost,
+        insertError,
+      });
+
+      if (insertError) throw insertError;
+
+      if (!updatedPost) {
+        throw new Error("Supabase did not return the updated post.");
+      }
+      console.log("Updated Supabase post:", updatedPost);
+      console.log("Stream activity ID saved:", updatedPost.stream_activity_id)
       if (!response || !response.activity) throw new Error("Failed to create post.")
       router.push(isReel ? "/reels" : "/")
     } catch (err) {

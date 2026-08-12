@@ -28,7 +28,7 @@ export default function Nav() {
             : pathname.startsWith(item.path);
 
           const isProfile = item.label === "Profile";
-          const userImage = user?.user_metadata.avatar_url || user?.user_metadata.picture || null;
+          const userImage = user?.user_metadata?.avatar_url || user?.user_metadata?.image || user?.user_metadata?.picture || null;
 
           if (item.isSpecial) {
             return (

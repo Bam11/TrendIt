@@ -6,7 +6,7 @@ const apiKey = process.env.NEXT_PUBLIC_GETSTREAM_API_KEY!;
 const secret = process.env.GETSTREAM_SECRET!;
 
 export async function POST( request: Request) {
-  const { full_name, username, avatar_url} = await request.json();
+  const { full_name, username, image} = await request.json();
   try {
     const supabase = await createClient();
 
@@ -21,12 +21,12 @@ export async function POST( request: Request) {
     const newUser = {
       id: user.id,
       custom: {
-        full_name: full_name,
+        fullname: full_name,
         username: username,
-        avatar_url: avatar_url,
+        image,
       },
       name: username,
-      image: avatar_url,
+      image,
     };
     await client.upsertUsers([newUser]);
 

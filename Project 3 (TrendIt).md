@@ -11,12 +11,10 @@ Feature List
 - Follow / Unfollow users
 - Notifications
 - Messaging (chat list + chat screen)
-- Profile page 
+- Profile page
 - Edit Profile
-- Go Live 
+- Go Live
 - Search
-
-
 
 -User Flows
 
@@ -77,7 +75,6 @@ Feature List
 6. Users send live comments
 7. Host ends live session
 
-
 -Data Models
 
 -User:
@@ -91,13 +88,11 @@ followersCount
 followingCount
 createdAt
 
-
 -Follow:
 id
 followerId
 followingId
 createdAt
-
 
 -Post:
 id
@@ -107,7 +102,6 @@ caption
 likesCount
 commentsCount
 createdAt
-
 
 -Reel:
 id
@@ -120,7 +114,6 @@ commentsCount
 viewsCount
 createdAt
 
-
 -Comment (Post & Reel)
 id
 userId
@@ -129,11 +122,10 @@ targetId
 text
 createdAt
 
-
 -Like (Post, Reel, Comment)
 id
 userId
-targetType  :"post" | "reel" | "comment"
+targetType :"post" | "reel" | "comment"
 targetId
 createdAt
 
@@ -155,14 +147,13 @@ createdAt
 id
 hostId
 title
-status :    "scheduled" | "live" | "ended"
+status : "scheduled" | "live" | "ended"
 isActive
 startedAt
 endedAt
 viewerCount
 streamId
 createdAt
-
 
 -Live Comment:
 id
@@ -171,64 +162,93 @@ userId
 text
 createdAt
 
-
 -Notification:
 id
 recipientId
 senderId
-type   "like" | "comment" | "follow" | "message" | "live_start"
-referenceId  postId | reelId | commentId | liveId | messageId
+type "like" | "comment" | "follow" | "message" | "live_start"
+referenceId postId | reelId | commentId | liveId | messageId
 isRead
 createdAt
-
-
-
 
 -Routes Plan:
 
 /app
 
-  /auth
-    /login
-      page.tsx
-    /signup
-      page.tsx
-  
-   /feed
-    page.tsx
+/auth
+/login
+page.tsx
+/signup
+page.tsx
 
-  /search
-    page.tsx
+/feed
+page.tsx
 
-  /reels
-    page.tsx
-    /[reelId]
-      page.tsx
+/search
+page.tsx
 
-  /create
-    page.tsx
+/reels
+page.tsx
+/[reelId]
+page.tsx
 
-  /notifications
-    page.tsx
+/create
+page.tsx
 
-  /messages
-    page.tsx
-    /[chatId]
-      page.tsx
+/notifications
+page.tsx
 
-  /profile
-    /[username]
-      page.tsx
+/messages
+page.tsx
+/[chatId]
+page.tsx
 
-  /edit-profile
-    page.tsx
+/profile
+/[username]
+page.tsx
 
-  /post
-    /[postId]
-      page.tsx
+/edit-profile
+page.tsx
 
-  /live
-    page.tsx
-    /[liveId]
-      page.tsx
+/post
+/[postId]
+page.tsx
 
+/live
+page.tsx
+/[liveId]
+page.tsx
+
+// 1. Delete the row from your table
+const { error: dbError } = await supabase
+.from("post")
+.delete()
+.eq("id", postId);
+
+// 2. Extract the path from your media URL and delete the file from Storage
+// Example URL: https://.../trendit_posts/user_id/12345.mp4 -> Path is "user_id/12345.mp4"
+const filePath = `${userId}/${filename}`;
+const { error: storageError } = await supabase.storage
+.from("trendit_posts")
+.remove([filePath]);
+
+// Delete the activity from the user feed using the activity ID
+const feed = client.feed("user", userId);
+await feed.removeActivity(activityId);
+
+//For network timeout
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
+
+try {
+const response = await fetch('https://stream-io-api.com...', {
+signal: controller.signal,
+// ... rest of your payload
+});
+} catch (error: any) {
+if (error.code === 'UND_ERR_SOCKET') {
+console.error("Network socket closed prematurely by the server.");
+}
+} finally {
+clearTimeout(timeoutId);
+}

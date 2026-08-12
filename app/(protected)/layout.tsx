@@ -40,7 +40,7 @@ export default function ProtectedLayout({
     );
   }
 
-  const hideLayout = pathname.startsWith("/reels");
+  const hideLayout = pathname.startsWith("/reels") || pathname.startsWith("/add-story") || pathname.startsWith("/profile/edit") || pathname.startsWith("/notification");
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50">

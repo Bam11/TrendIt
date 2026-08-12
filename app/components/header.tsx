@@ -7,8 +7,8 @@ export default function Header() {
 
   return (
     <header className="fixed top-0 right-0 left-0 z-50 bg-white/80 backdrop-blur-lg">
-      <div className="absolute bottom-0 inset-x-0 h-[1px] bg-linear-to-r from-blue-600 to-purple-600"/>
-      
+      <div className="absolute bottom-0 inset-x-0 h-[1px] bg-linear-to-r from-blue-600 to-purple-600" />
+
       <div className="max-w-93.75 mx-auto px-4 py-3 flex items-center justify-between">
         <button
           type="button"
@@ -20,7 +20,7 @@ export default function Header() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => router.push("")}
+            onClick={() => router.push("/chat")}
             className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <MessageCircle className="size-6 text-gray-700" />
@@ -32,7 +32,7 @@ export default function Header() {
           </button>
           <button
             type="button"
-            onClick={() => router.push("")}
+            onClick={() => router.push("/notification")}
             className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <Bell className="size-6 text-gray-700" />

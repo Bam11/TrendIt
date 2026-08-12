@@ -21,9 +21,30 @@ type StreamActor = string | {
   custom?: Record<string, string>,
 }
 
-function getActorInfo(actor: StreamActor) {
+function getActorInfo(actor: StreamActor, currentUser?: any) {
+  if (!actor) {
+    if (currentUser) {
+      return {
+        id: currentUser.id,
+        username: currentUser.user_metadata?.username || currentUser.user_metadata?.name?.split(" ")?.[0] || "User",
+        fullName: currentUser.user_metadata?.full_name || currentUser.user_metadata?.fullname || currentUser.user_metadata?.name || "User",
+        avatar: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.image || currentUser.user_metadata?.picture || null,
+      };
+    }
+    return { id: "", username: "User", fullName: "User", avatar: null as string | null };
+  }
+
+  const id = typeof actor === "string" ? (actor.split(":").pop() ?? actor) : actor.id;
+  const isCurrent = currentUser && id === currentUser.id;
+
+  if (isCurrent) {
+    const avatar = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.image || currentUser.user_metadata?.picture || (typeof actor !== "string" ? actor.image : null) || null;
+    const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.fullname || currentUser.user_metadata?.name || (typeof actor !== "string" ? (actor.custom?.full_name ?? actor.name) : id);
+    const username = currentUser.user_metadata?.username || (typeof actor !== "string" ? (actor.name || actor.custom?.username) : id);
+    return { id, username, fullName, avatar };
+  }
+
   if (typeof actor === "string") {
-    const id = actor.split(":").pop() ?? actor;
     return { id, username: id, fullName: id, avatar: null as string | null };
   }
   return {
@@ -75,7 +96,8 @@ function CommentRow({
   onCancelEdit?: () => void,
   onDelete?: () => void,
 }) {
-  const actor = getActorInfo(comment.user);
+  const { user } = useAuth();
+  const actor = getActorInfo(comment.user, user);
   // const createdAt =
   //   comment.created_at instanceof Date
   //     ? comment.created_at.toISOString()

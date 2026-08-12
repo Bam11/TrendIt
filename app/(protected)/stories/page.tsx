@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { Feed } from "@stream-io/feeds-client";
 import Image from "next/image";
-import { cn } from "../lib/utils"
-import StoryViewer from "../(protected)/story-viewer/page";
+import { cn } from "@/app/lib/utils"
+import StoryViewer from "@/app/components/story-viewer";
 import { ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 
@@ -28,6 +28,7 @@ import Link from "next/link";
 
 type ActivityLike = {
   id: string;
+  created_at?: string;
   attachments?: Array<{ type?: string; image_url?: string }>
 }
 
@@ -38,9 +39,21 @@ type StreamActor = string | {
   custom?: Record<string, string>;
 };
 
-function getActorInfo(actor: StreamActor) {
+function getActorInfo(actor: StreamActor, currentUserId?: string, userAvatar?: string) {
+  if (!actor) return { id: "", username: "User", fullName: "User", avatar: userAvatar ?? null };
+  const id = typeof actor === "string" ? (actor.split(":").pop() ?? actor) : actor.id;
+  const isCurrent = currentUserId && id === currentUserId;
+
+  if (isCurrent && userAvatar) {
+    return {
+      id,
+      username: typeof actor !== "string" ? (actor.name ?? actor.id) : id,
+      fullName: typeof actor !== "string" ? (actor.custom?.full_name ?? actor.name ?? actor.id) : id,
+      avatar: userAvatar,
+    };
+  }
+
   if (typeof actor === "string") {
-    const id = actor.split(":").pop() ?? actor;
     return { id, username: id, fullName: id, avatar: null as string | null };
   }
   return {
@@ -64,7 +77,7 @@ export type StoryProps = {
   aggregatedGroups: StoryGroup[];
 }
 
-export default function Story({ userAvatar, currentUserId, myStoryCount, aggregatedGroups }: StoryProps) {
+export default function Story({ userAvatar, currentUserId, myStoryCount = 0, aggregatedGroups = [] }: StoryProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams.get("userId");
@@ -76,21 +89,25 @@ export default function Story({ userAvatar, currentUserId, myStoryCount, aggrega
 
   const userStoriesRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setshowLeftArrow] = useState(false);
-  const [showRightArrow, setshowRightArrow] = useState(true);   
+  const [showRightArrow, setshowRightArrow] = useState(true);
 
   useEffect(() => {
     if (!userId || !client) {
-      if (!userId) router.replace("/");
+      setLoading(false);
       return;
     }
-    
+    setLoading(true);
     const storyFeed = client.feed("story", userId);
     storyFeed
       .getOrCreate({ watch: true, limit: 100 })
       .then((res) => {
         setFeed(storyFeed);
-        const activities = (res.activities ?? []) as ActivityLike[];
-        setActivities(activities.slice().reverse());
+        const fetchedActivities = (res.activities ?? []) as ActivityLike[];
+        const recentActivities = fetchedActivities.filter(a => {
+          if (!a.created_at) return false;
+          return Date.now() - new Date(a.created_at).getTime() < 24 * 60 * 60 * 1000;
+        });
+        setActivities(recentActivities.slice().reverse());
         setCurrentIndex(0);
       })
       .catch(() => {
@@ -242,54 +259,60 @@ export default function Story({ userAvatar, currentUserId, myStoryCount, aggrega
         id="user-stories"
         className="flex gap-4 overflow-x-auto pb-2 scroll-smooth"
       >
-        <Link
-          href={myStoryCount > 0 ? `/stories?userId=${currentUserId}` : "/add-story"}
-          className="flex flex-col items-center gap-2"
-        >
-          <div className="relative">
-            <div className={`size-16 rounded-full border  overflow-hidden shrink-0 ${myStoryCount > 0
-              ? "border-transparent bg-linear-to-r from-blue-600 to-purple-600 p-0.5"
-              : "border-gray-200 bg-gray-100"
-              } `}>
-              <div className="size-full rounded-full overflow-hidden border border-white bg-gray-200 relative">
-                {userAvatar ? (
-                  <Image
-                    src={userAvatar}
-                    alt="Your Story"
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="size-full bg-linear-to-br from-blue-600 to-purple-600" />
-                )}
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative group/add">
+            <Link
+              href={myStoryCount > 0 ? `?userId=${currentUserId}` : "/add-story"}
+              className="block"
+            >
+              <div className={`size-16 rounded-full border overflow-hidden shrink-0 ${myStoryCount > 0
+                ? "border-transparent bg-linear-to-r from-blue-600 to-purple-600 p-0.5"
+                : "border-gray-200 bg-gray-100"
+                } `}>
+                <div className="size-full rounded-full overflow-hidden border border-white bg-gray-200 relative">
+                  {userAvatar ? (
+                    <Image
+                      src={userAvatar}
+                      alt="Your Story"
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="size-full bg-linear-to-br from-blue-600 to-purple-600" />
+                  )}
+                </div>
               </div>
-            </div>
+            </Link>
 
-            <div className="absolute -bottom-0.5 z-20 -right-0.5 size-5 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center">
-              <Plus size={12} strokeWidth={3} className="text-white" />
-            </div>
+            <Link
+              href="/add-story"
+              className="absolute -bottom-0.5 z-20 -right-0.5 size-6 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center hover:scale-110 transition-transform cursor-pointer"
+            >
+              <Plus size={14} strokeWidth={3} className="text-white" />
+            </Link>
           </div>
           <span className="text-xs text-gray-600 w-14 text-center truncate">Your Story</span>
-        </Link>
+        </div>
 
         {aggregatedGroups.map((group) => {
           const firstActivity = group.activities?.[0]
           const actor = firstActivity?.user
-          const { id: authorId, username } = getActorInfo(actor ?? "");
+          const actorInfo = getActorInfo(actor ?? "", currentUserId, userAvatar);
+          const { id: authorId, username } = actorInfo;
           const hasWatched = !group.is_watched;
           return (
             <Link
               key={group.id ?? authorId ?? firstActivity?.id ?? " "}
-              href={`/story-viewer?userId=${encodeURIComponent(authorId)}`}
+              href={`?userId=${encodeURIComponent(authorId)}`}
             >
               <div className={`size-16 rounded-full p-0.5 ${hasWatched ? "bg-linear-to-r from-blue-600 to-purple-600"
                 : "bg-gray-300"
                 }`}>
                 <div className="size-full rounded-full overflow-hidden border border-white bg-gray-800 relative">
-                  {getActorInfo(actor ?? "").avatar && (
+                  {actorInfo.avatar && (
                     <Image
-                      src={getActorInfo(actor ?? "").avatar!}
+                      src={actorInfo.avatar}
                       alt={username}
                       fill
                       unoptimized
@@ -344,15 +367,22 @@ export default function Story({ userAvatar, currentUserId, myStoryCount, aggrega
       </div>
 
 
-      <StoryViewer
-        activities={activities}
-        feed={feed}
-        currentIndex={currentIndex}
-        onClose={handleClose}
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onMarkMatched={markWatched}
-      />
+      {userId && loading && (
+        <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+          <div className="size-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        </div>
+      )}
+      {userId && !loading && (
+        <StoryViewer
+          activities={activities}
+          feed={feed}
+          currentIndex={currentIndex}
+          onClose={handleClose}
+          onPrev={handlePrev}
+          onNext={handleNext}
+          onMarkMatched={markWatched}
+        />
+      )}
     </div>
   )
 }

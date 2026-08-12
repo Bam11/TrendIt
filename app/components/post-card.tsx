@@ -4,11 +4,12 @@ import { useState } from 'react';
 import Image from "next/image";
 import { motion } from "motion/react";
 import { useAuth } from '../context/AuthContext';
-import { Bookmark, Heart, MessageCircle, Share2 } from "lucide-react";
+import { Bookmark, Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Loader2 } from "lucide-react";
 import { ActivityResponse, Feed } from '@stream-io/feeds-client';
 import moment from 'moment';
 import Comment from './comment';
 import { useOwnFollowings } from '@stream-io/feeds-client/react-bindings';
+import { createClient } from '@/app/lib/supabase/client';
 
 type StreamActor = string | {
   id: string,
@@ -17,9 +18,30 @@ type StreamActor = string | {
   custom?: Record<string, string>,
 }
 
-function getActorInfo(actor: StreamActor) {
+function getActorInfo(actor: StreamActor, currentUser?: any) {
+  if (!actor) {
+    if (currentUser) {
+      return {
+        id: currentUser.id,
+        username: currentUser.user_metadata?.username || currentUser.user_metadata?.name?.split(" ")?.[0] || "User",
+        fullName: currentUser.user_metadata?.full_name || currentUser.user_metadata?.fullname || currentUser.user_metadata?.name || "User",
+        avatar: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.image || currentUser.user_metadata?.picture || null,
+      };
+    }
+    return { id: "", username: "User", fullName: "User", avatar: null as string | null };
+  }
+
+  const id = typeof actor === "string" ? (actor.split(":").pop() ?? actor) : actor.id;
+  const isCurrent = currentUser && id === currentUser.id;
+
+  if (isCurrent) {
+    const avatar = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.image || currentUser.user_metadata?.picture || (typeof actor !== "string" ? actor.image : null) || null;
+    const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.fullname || currentUser.user_metadata?.name || (typeof actor !== "string" ? (actor.custom?.full_name ?? actor.name) : id);
+    const username = currentUser.user_metadata?.username || (typeof actor !== "string" ? (actor.name || actor.custom?.username) : id);
+    return { id, username, fullName, avatar };
+  }
+
   if (typeof actor === "string") {
-    const id = actor.split(":").pop() ?? actor;
     return { id, username: id, fullName: id, avatar: null as string | null };
   }
   return {
@@ -62,6 +84,7 @@ function getActorInfo(actor: StreamActor) {
 
 export default function PostCard({ activity, feed }: { activity: ActivityResponse; feed: Feed | undefined }) {
   const { user, client } = useAuth();
+  const supabase = createClient();
 
   // const [activities, setActivities] = useState<ActivityResponse[]>([])
   const { username, avatar, id: actorId } = getActorInfo(activity.user);
@@ -74,6 +97,43 @@ export default function PostCard({ activity, feed }: { activity: ActivityRespons
   const hashTags = caption.match(/#\w+/g) ?? [];
   const captionText = caption.replace(/#\w+/g, "").trim();
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
+
+  const handleDeletePost = async () => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    setIsDeleting(true);
+    try {
+      if (!client) {
+        throw new Error("GetStream client is not available")
+      }
+
+      await client.deleteActivity({
+        id: activity.id,
+        hard_delete: true,
+      });
+
+      const { data: deletedPost, error: supabaseError } = await supabase
+        .from("post")
+        .delete()
+        .eq("stream_activity_id", activity.id)
+        .select("id, stream_activity_id");
+
+      if (supabaseError) {
+        console.error("Failed to delete post:", supabaseError)
+      }
+      console.log("Deleted Supabase post:", deletedPost);
+
+      setIsDeleted(true);
+    } catch (err) {
+      console.error("Failed to delete post:", err);
+      alert("Failed to delete post.");
+    } finally {
+      setIsDeleting(false);
+      setOptionsOpen(false);
+    }
+  };
   // const { activities } = useFeedActivities(feed);
   console.log("ACTIVITY:", activity);
   console.log("ATTACHMENTS:", activity.attachments);
@@ -98,8 +158,17 @@ export default function PostCard({ activity, feed }: { activity: ActivityRespons
   //     tags: ["#skateboarding", "#fun", "#weekend"],
   //   }
   // ]
-  const hasLiked = !!activity.own_reactions?.filter((reaction) => (reaction.activity_id === activity.id && reaction.user.id === user?.id))[0];
-  const hasBookmarked = !!activity.own_bookmarks?.filter((bookmark) => (bookmark.activity.id === activity.id && bookmark.user.id === user?.id))[0];
+  const hasLiked = !!activity.own_reactions?.filter(
+    (reaction) =>
+    (reaction.activity_id === activity.id &&
+      reaction.user.id === user?.id)
+  )[0];
+
+  const hasBookmarked = !!activity.own_bookmarks?.filter(
+    (bookmark) =>
+    (bookmark.activity.id === activity.id &&
+      bookmark.user.id === user?.id)
+  )[0];
 
   const { own_followings } = useOwnFollowings(feed) ?? {};
   const isFollowing = !!own_followings?.some(
@@ -163,6 +232,7 @@ export default function PostCard({ activity, feed }: { activity: ActivityRespons
     }
   }
 
+  if (isDeleted) return null;
   // async function addBookmark(activity_id: string) {
   //   if (!client || !activity_id) return;
   //   await client.addBookmark({
@@ -223,7 +293,7 @@ export default function PostCard({ activity, feed }: { activity: ActivityRespons
                   height={40}
                   loading="lazy"
                   unoptimized
-                  className="rounded-full object-cover size-10"
+                  className="size-10 rounded-full object-cover size-10"
                 />
               )}
               <div>
@@ -231,7 +301,7 @@ export default function PostCard({ activity, feed }: { activity: ActivityRespons
                 <p className="text-gray-500 text-xs">{moment(activity.created_at).fromNow()}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 relative">
               {!isOwnPost && (
                 <button
                   type="button"
@@ -243,6 +313,42 @@ export default function PostCard({ activity, feed }: { activity: ActivityRespons
                 >
                   {followLoading ? "..." : isFollowing ? "Following" : "Follow"}
                 </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setOptionsOpen(!optionsOpen)}
+                className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                title="Post Options"
+              >
+                <MoreHorizontal className="size-5" />
+              </button>
+
+              {optionsOpen && (
+                <div className="absolute right-0 top-9 z-50 bg-white rounded-xl shadow-lg border border-gray-100 py-1 w-36 text-left">
+                  {isOwnPost ? (
+                    <button
+                      type="button"
+                      onClick={handleDeletePost}
+                      disabled={isDeleting}
+                      className="w-full px-4 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer font-medium"
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="size-4 animate-spin text-red-600" />
+                      ) : (
+                        <Trash2 className="size-4 text-red-600" />
+                      )}
+                      <span>Delete Post</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setOptionsOpen(false)}
+                      className="w-full px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      Report Post
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -262,8 +368,10 @@ export default function PostCard({ activity, feed }: { activity: ActivityRespons
                 src={video}
                 controls
                 autoPlay
+                playsInline
+                preload="metadata"
+                muted
                 // loop
-                // muted
                 className="aspect-square object-cover overflow-hidden bg-gray-100"
               />
             )}
@@ -331,8 +439,8 @@ export default function PostCard({ activity, feed }: { activity: ActivityRespons
                 className="transition-transform active:scale-90 outline-none"
               >
                 <Bookmark className={`size-6 transition-colors 
-                    ${hasBookmarked ? "fill-blue-600 text-blue-600" : "text-gray-700"}`}
-                  strokeWidth={hasBookmarked ? 0 : 1.8}
+                    ${isBookmarked ? "fill-blue-600 text-blue-600" : "text-gray-700"}`}
+                  strokeWidth={isBookmarked ? 0 : 1.8}
                 />
               </button>
             </div>

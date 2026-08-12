@@ -4,12 +4,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Feed } from "@stream-io/feeds-client";
 import { useAggregatedActivities, useFeedActivities } from "@stream-io/feeds-client/react-bindings";
 import { useAuth } from "../context/AuthContext";
-import Story from "../components/story";
+import Story from "@/app/(protected)/stories/page";
 import PostCard from "../components/post-card";
 
 type StoryGroup = {
   id?: string;
-  activities?: Array<{ id: string; user?: StreamActor }>;
+  activities?: Array<{ id: string; user?: StreamActor; "created_at"?: string }>;
   is_watched?: boolean;
 };
 
@@ -31,6 +31,13 @@ export default function Home() {
 
   const { aggregated_activities: aggregatedStoryGroups = [] } = useAggregatedActivities(storiesFeed) ?? {};
   const { activities: myStoryActivities = [] } = useFeedActivities(myStoryFeed) ?? {};
+
+  // Filter for stories created in the last 24 hours
+  const recentMyStories = myStoryActivities.filter(a => a.created_at && Date.now() - new Date(a.created_at).getTime() < 24 * 60 * 60 * 1000);
+  const recentAggregatedStoryGroups = aggregatedStoryGroups.map(group => ({
+    ...group,
+    activities: (group.activities as any[])?.filter(a => a.created_at && Date.now() - new Date(a.created_at).getTime() < 24 * 60 * 60 * 1000)
+  })).filter(group => (group.activities?.length ?? 0) > 0);
 
   const limit = 4;
   const hasNoPost = !loading && (!activities || activities === undefined || activities.length === 0 || activities.length === undefined);
@@ -86,15 +93,15 @@ export default function Home() {
   }, [client, user?.id, user]);
 
   console.log({ loading, activitieCount: activities?.length, activities })
-  const userImage = user?.user_metadata.avatar_url || user?.user_metadata.picture || null;
+  const userImage = user?.user_metadata?.avatar_url || user?.user_metadata?.image || user?.user_metadata?.picture || null;
   return (
     <div className="p-4 space-y-6">
-      {/* <Story
+      <Story
         userAvatar={userImage}
         currentUserId={user?.id}
-        myStoryCount={myStoryActivities.length}
-        aggregatedGroups={aggregatedStoryGroups as StoryGroup[]}
-      /> */}
+        myStoryCount={recentMyStories.length}
+        aggregatedGroups={recentAggregatedStoryGroups as StoryGroup[]}
+      />
       <div>
         {loading ? (
           <div className="flex items-center justify-center py-16">

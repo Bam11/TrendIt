@@ -3,76 +3,77 @@
 import React, { useEffect, useRef, useState } from 'react'
 import Image from 'next/image';
 import { motion } from "motion/react";
-import { Bookmark, Heart, MessageCircle, MoreVertical, Share2, Volume2, VolumeX } from 'lucide-react';
+import { Bookmark, Heart, MessageCircle, MoreVertical, Share2, Volume2, VolumeX, Trash2, Loader2 } from 'lucide-react';
 import Nav from '@/app/components/nav';
 import { ActivityResponse, Feed } from "@stream-io/feeds-client";
 import { useAuth } from '../context/AuthContext';
 import Link from 'next/link';
 import Comment from './comment';
+import { createClient } from '@/app/lib/supabase/client';
 
-interface Reel {
-  id: string;
-  author: {
-    name: string;
-    username: string;
-    avatar: string;
-  };
-  video: string;
-  thumbnail: string;
-  caption: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  music: string;
-}
+// interface Reel {
+//   id: string;
+//   author: {
+//     name: string;
+//     username: string;
+//     avatar: string;
+//   };
+//   video: string;
+//   thumbnail: string;
+//   caption: string;
+//   likes: number;
+//   comments: number;
+//   shares: number;
+//   music: string;
+// }
 
-const mockReels: Reel[] = [
-  {
-    id: "1",
-    author: {
-      name: "Alex Rivera",
-      username: "@alexr",
-      avatar: "/images/user-1.webp",
-    },
-    video: "",
-    thumbnail: "/images/post.webp",
-    caption: "Perfect day for some tricks 🛹 #skateboarding #lifestyle",
-    likes: 24500,
-    comments: 892,
-    shares: 234,
-    music: "Summer Vibes - DJ Cool",
-  },
-  {
-    id: "2",
-    author: {
-      name: "Emma Wilson",
-      username: "@emmaw",
-      avatar: "/images/user-2.webp",
-    },
-    video: "/images/reel.mp4",
-    thumbnail: "/images/post.webp",
-    caption: "Living my best life ✨💫 #travel #adventure",
-    likes: 18300,
-    comments: 645,
-    shares: 189,
-    music: "Good Vibes Only - Artist",
-  },
-  {
-    id: "3",
-    author: {
-      name: "Jordan Kim",
-      username: "@jkim",
-      avatar: "/images/user-1.webp",
-    },
-    video: "",
-    thumbnail: "/images/post.webp",
-    caption: "Sunset vibes 🌅 #nature #peaceful",
-    likes: 31200,
-    comments: 1024,
-    shares: 456,
-    music: "Chill Beats - Lo-Fi",
-  },
-];
+// const mockReels: Reel[] = [
+//   {
+//     id: "1",
+//     author: {
+//       name: "Alex Rivera",
+//       username: "@alexr",
+//       avatar: "/images/user-1.webp",
+//     },
+//     video: "",
+//     thumbnail: "/images/post.webp",
+//     caption: "Perfect day for some tricks 🛹 #skateboarding #lifestyle",
+//     likes: 24500,
+//     comments: 892,
+//     shares: 234,
+//     music: "Summer Vibes - DJ Cool",
+//   },
+//   {
+//     id: "2",
+//     author: {
+//       name: "Emma Wilson",
+//       username: "@emmaw",
+//       avatar: "/images/user-2.webp",
+//     },
+//     video: "/images/reel.mp4",
+//     thumbnail: "/images/post.webp",
+//     caption: "Living my best life ✨💫 #travel #adventure",
+//     likes: 18300,
+//     comments: 645,
+//     shares: 189,
+//     music: "Good Vibes Only - Artist",
+//   },
+//   {
+//     id: "3",
+//     author: {
+//       name: "Jordan Kim",
+//       username: "@jkim",
+//       avatar: "/images/user-1.webp",
+//     },
+//     video: "",
+//     thumbnail: "/images/post.webp",
+//     caption: "Sunset vibes 🌅 #nature #peaceful",
+//     likes: 31200,
+//     comments: 1024,
+//     shares: 456,
+//     music: "Chill Beats - Lo-Fi",
+//   },
+// ];
 
 type StreamActor = string | {
   id: string,
@@ -81,9 +82,30 @@ type StreamActor = string | {
   custom?: Record<string, string>,
 }
 
-function getActorInfo(actor: StreamActor) {
+function getActorInfo(actor: StreamActor, currentUser?: any) {
+  if (!actor) {
+    if (currentUser) {
+      return {
+        id: currentUser.id,
+        username: currentUser.user_metadata?.username || currentUser.user_metadata?.name?.split(" ")?.[0] || "User",
+        fullName: currentUser.user_metadata?.full_name || currentUser.user_metadata?.fullname || currentUser.user_metadata?.name || "User",
+        avatar: currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.image || currentUser.user_metadata?.picture || null,
+      };
+    }
+    return { id: "", username: "User", fullName: "User", avatar: null as string | null };
+  }
+
+  const id = typeof actor === "string" ? (actor.split(":").pop() ?? actor) : actor.id;
+  const isCurrent = currentUser && id === currentUser.id;
+
+  if (isCurrent) {
+    const avatar = currentUser.user_metadata?.avatar_url || currentUser.user_metadata?.image || currentUser.user_metadata?.picture || (typeof actor !== "string" ? actor.image : null) || null;
+    const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.fullname || currentUser.user_metadata?.name || (typeof actor !== "string" ? (actor.custom?.full_name ?? actor.name) : id);
+    const username = currentUser.user_metadata?.username || (typeof actor !== "string" ? (actor.name || actor.custom?.username) : id);
+    return { id, username, fullName, avatar };
+  }
+
   if (typeof actor === "string") {
-    const id = actor.split(":").pop() ?? actor;
     return { id, username: id, fullName: id, avatar: null as string | null };
   }
   return {
@@ -107,11 +129,51 @@ export default function ReelCard({ feed, activity, isActive }: ReelCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
 
-  const { username, avatar, id: actorId } = getActorInfo(activity.user);
+  const handleDeleteReel = async () => {
+    if (!confirm("Are you sure you want to delete this reel?")) return;
+    setIsDeleting(true);
+    try {
+      if (!client) {
+        throw new Error("GetStream client is not available")
+      }
+
+      await client.deleteActivity({
+        id: activity.id,
+        hard_delete: true,
+      });
+
+      const supabase = createClient();
+      const { data: deletedPost, error: supabaseError } = await supabase
+        .from("post")
+        .delete()
+        .eq("stream_activity_id", activity.id)
+        .select("id, stream_activity_id");
+
+      if (supabaseError) {
+        console.error("Failed to delete post:", supabaseError)
+      }
+      console.log("Deleted Supabase post:", deletedPost); if (supabaseError) {
+        console.error("Failed to delete post:", supabaseError)
+      }
+      console.log("Deleted Supabase post:", deletedPost);
+      setIsDeleted(true);
+    } catch (err) {
+      console.error("Failed to delete reel:", err);
+      alert("Failed to delete reel.");
+    } finally {
+      setIsDeleting(false);
+      setOptionsOpen(false);
+    }
+  };
+
+  const { username, avatar, id: actorId } = getActorInfo(activity.user, user);
   const caption = activity.custom?.caption ?? activity.text ?? "";
   const attachment = activity.attachments?.[0];
-  const videourl = attachment?.image_url as string ?? null;
+  const videourl = (attachment?.asset_url as string) ?? (attachment?.image_url as string) ?? null;
   const likeCount = activity.reaction_count ?? 0;
   const commentCount = activity.comment_count ?? 0;
 
@@ -197,7 +259,7 @@ export default function ReelCard({ feed, activity, isActive }: ReelCardProps) {
     const scrollTop = containerRef.current.scrollTop;
     const itemHeight = window.innerHeight;
     const index = Math.round(scrollTop / itemHeight);
-    if (index !== currentIndex && index >= 0 && index < mockReels.length) {
+    if (index !== currentIndex && index >= 0 && index < videourl.length) {
       setCurrentIndex(index);
     }
   };
@@ -217,6 +279,8 @@ export default function ReelCard({ feed, activity, isActive }: ReelCardProps) {
       </div>
     );
   }
+
+  if (isDeleted) return null;
 
   return (
     <>
@@ -321,9 +385,44 @@ export default function ReelCard({ feed, activity, isActive }: ReelCardProps) {
               strokeWidth={hasBookmarked ? 0 : 1.8}
             />
           </motion.button>
-          <button className="flex flex-col items-center gap-1">
-            <MoreVertical className="size-8 text-white" />
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setOptionsOpen(!optionsOpen)}
+              className="flex flex-col items-center gap-1 cursor-pointer"
+              title="Reel Options"
+            >
+              <MoreVertical className="size-8 text-white" />
+            </button>
+
+            {optionsOpen && (
+              <div className="absolute right-0 bottom-10 z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 w-36 text-left">
+                {isOwnPost ? (
+                  <button
+                    type="button"
+                    onClick={handleDeleteReel}
+                    disabled={isDeleting}
+                    className="w-full px-4 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer font-medium"
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="size-4 animate-spin text-red-600" />
+                    ) : (
+                      <Trash2 className="size-4 text-red-600" />
+                    )}
+                    <span>Delete Reel</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setOptionsOpen(false)}
+                    className="w-full px-4 py-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    Report Reel
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="absolute bottom-25 left-4 right-14 z-10 text-white space-y-1">

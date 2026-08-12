@@ -12,12 +12,24 @@ const nextConfig: NextConfig = {
       {
         protocol: "http",
         hostname: "**"
+      },
+      {
+        protocol: "https",
+        hostname: "platform-lookaside.fbsbx.com"
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com"
+      },
+      {
+        protocol: "https",
+        hostname: "*.supabase.co"
       }
     ],
-    domains: [
-      "platform-lookaside.fbsbx.com",
-      "lh3.googleusercontent.com", 
-    ],
+    // domains: [
+    //   "platform-lookaside.fbsbx.com",
+    //   "lh3.googleusercontent.com", 
+    // ],
   },
 };
 
