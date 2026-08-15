@@ -132,7 +132,7 @@ export default function Profile() {
 
         setSavedPosts(
           activities.filter(
-            (activity) => activity.own_bookmarks?.length > 0
+            (activity) => (activity.own_bookmarks?.length ?? 0) > 0
           )
         );
         console.log(activities);
@@ -344,11 +344,11 @@ export default function Profile() {
     <div className="space-y-6">
       <div className="pt-4 px-4 flex flex-col gap-4">
         <div className="grid grid-cols-2 items-end gap-2">
-          <p className="text-base text-[#4a5568] tracking-tighter">
+          <p className="text-[14px] text-[#4a5568] tracking-tighter">
             {profileData?.bio ?? user?.user_metadata?.bio ?? "No bio yet"}
           </p>
           <div className="flex flex-col ml-4">
-            <div className="relative grid place-items-center">
+            <div className="relative grid place-items-left">
               <Image
                 src={image}
                 alt={username}
@@ -359,7 +359,7 @@ export default function Profile() {
               <div className="absolute bottom-0 right-9 size-5 bg-green-500 rounded-full border-2 border-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{fullName}</h1>
+              <h1 className="text-xl font-bold">{fullName}</h1>
               <p className="text-gray-600">@{username}</p>
             </div>
           </div>
@@ -370,7 +370,7 @@ export default function Profile() {
             <p className="text-sm text-gray-600">Posts</p>
           </div>
           <button
-            type="button" 
+            type="button"
             onClick={() => setListDrawer("followers")}
             className="flex-1 flex flex-col items-center hover:opacity-80 transition"
           >

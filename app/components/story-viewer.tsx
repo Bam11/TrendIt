@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Heart, MoreVertical, Pause, Play, Send, X, E
 import { Feed } from '@stream-io/feeds-client';
 import moment from 'moment';
 import { useAuth } from '@/app/context/AuthContext';
+import { useRouter } from 'next/navigation'
 
 // type StoryItem = {
 //   id: number,
@@ -87,6 +88,7 @@ export default function StoryViewer({ activities, feed, currentIndex, onClose, o
   const isTextStory = Boolean(activity?.text && activity?.custom?.content_type === "story");
   const durationMs = isVideo ? undefined : STORY_DURATION;
   const [message, setMessage] = useState("");
+  const router = useRouter();
 
   const { id: actorId, username, avatar } = getActorInfo(activity?.user || activity?.actor, user);
   const isOwner = Boolean(actorId && user?.id && actorId === user?.id);
@@ -166,8 +168,48 @@ export default function StoryViewer({ activities, feed, currentIndex, onClose, o
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault()
     if (message.trim()) {
-      alert(`Simulating Sending Message to ${username}: "${message}"\n\n(Chat Inbox integration to be built here)`);
+      // try {
+      //   const saved = typeof window !== "undefined" ? localStorage.getItem("trendit_conversations") : null;
+      //   let convs = saved ? JSON.parse(saved) : [];
+      //   const targetUsername = username || "story_author";
+      //   const existingIndex = convs.findIndex(
+      //     (c: any) => c.participant?.username?.toLowerCase() === targetUsername.toLowerCase()
+      //   );
+
+      //   const newMsg = {
+      //     id: `m-${Date.now()}`,
+      //     senderId: "me",
+      //     text: `Replied to story: "${message.trim()}"`,
+      //     timestamp: "Just now",
+      //     status: "sent"
+      //   };
+
+      //   if (existingIndex >= 0) {
+      //     convs[existingIndex].lastMessage = newMsg.text;
+      //     convs[existingIndex].lastMessageTime = "Just now";
+      //     convs[existingIndex].messages.push(newMsg);
+      //   } else {
+      //     convs.unshift({
+      //       id: `conv-${Date.now()}`,
+      //       participant: {
+      //         id: `user-${Date.now()}`,
+      //         name: targetUsername.charAt(0).toUpperCase() + targetUsername.slice(1),
+      //         username: targetUsername,
+      //         avatar: story?.user_image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      //         isOnline: true
+      //       },
+      //       lastMessage: newMsg.text,
+      //       lastMessageTime: "Just now",
+      //       unreadCount: 0,
+      //       messages: [newMsg]
+      //     });
+      //   }
+      //   localStorage.setItem("trendit_conversations", JSON.stringify(convs));
+      // } catch (err) {
+      //   console.error(err);
+      // }
       setMessage("");
+      router.push("/chat");
     }
   }
 

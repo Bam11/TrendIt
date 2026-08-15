@@ -8,12 +8,11 @@ import axios from 'axios';
 import { ArrowLeft, Camera, ChevronDown, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { motion } from "motion/react";
-import Link from 'next/link';
 
 export default function EditProfile() {
   const router = useRouter();
   const supabase = createClient();
-  const { user, setUser } = useAuth();
+  const { user, client, setUser, logout } = useAuth();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -161,6 +160,17 @@ export default function EditProfile() {
       setSaving(false)
     }
   }
+
+  const handleLogout = async () => {
+    try {
+      await client?.disconnectUser();
+    } catch (error) {
+      console.error("GetStream disconnect failed:", error);
+    } finally {
+      await logout();
+      router.push("/login");
+    }
+  };
 
   // const inputClass =
   // "w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition";
@@ -383,21 +393,22 @@ export default function EditProfile() {
                 { label: "Privacy and Security", href: "/profile/privacy" },
                 { label: "Notifications", href: "/profile/notifications" },
               ].map(({ label, href }) => (
-                <Link
-                  href={href}
+                <button
+                  onClick={() => router.push(href)}
                   key={label}
                   type="button"
-                  className="w-full px-4 py-3 text-left text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="w-full px-4 py-2 text-left text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   {label}
-                </Link>
+                </button>
               )
               )}
               <button
                 type="button"
-                className="w-full px-4 py-3 text-left text-red-600 hover:bg-gray-50 transition-colors font-semibold cursor-pointer"
+                onClick={handleLogout}
+                className="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-50 transition-colors font-semibold cursor-pointer"
               >
-                Delete Account
+                Log out
               </button>
             </Section>
           </div>

@@ -293,7 +293,7 @@ export default function PostCard({ activity, feed }: { activity: ActivityRespons
                   height={40}
                   loading="lazy"
                   unoptimized
-                  className="size-10 rounded-full object-cover size-10"
+                  className="size-10 rounded-full object-cover"
                 />
               )}
               <div>
