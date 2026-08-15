@@ -18,7 +18,7 @@ type ActivityLike = {
   id: string;
   actor?: StreamActor;
   user?: StreamActor;
-  created_at?: string;
+  created_at?: string | Date;
   attachments?: Array<{ type?: string; image_url?: string; asset_url?: string }>;
   text?: string;
   custom?: Record<string, unknown>;

@@ -9,6 +9,7 @@ import { cn } from "@/app/lib/utils"
 import StoryViewer from "@/app/components/story-viewer";
 import { ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
+import moment from "moment";
 
 // type StoryItem = {
 //   id: number,
@@ -28,8 +29,13 @@ import Link from "next/link";
 
 type ActivityLike = {
   id: string;
-  created_at?: string;
-  attachments?: Array<{ type?: string; image_url?: string }>
+  created_at?: string | Date;
+  actor?: StreamActor;
+  user?: StreamActor;
+  attachments?: Array<{ type?: string; image_url?: string; asset_url?: string }>;
+  text?: string;
+  custom?: Record<string, unknown>;
+  [key: string]: any;
 }
 
 type StreamActor = string | {
@@ -102,12 +108,16 @@ export default function Story({ userAvatar, currentUserId, myStoryCount = 0, agg
       .getOrCreate({ watch: true, limit: 100 })
       .then((res) => {
         setFeed(storyFeed);
-        const fetchedActivities = (res.activities ?? []) as ActivityLike[];
-        const recentActivities = fetchedActivities.filter(a => {
-          if (!a.created_at) return false;
-          return Date.now() - new Date(a.created_at).getTime() < 24 * 60 * 60 * 1000;
+        const fetchedActivities = (res.activities ?? []) as unknown as ActivityLike[];
+
+        const recentActivities = fetchedActivities.filter(activity => {
+          if (!activity.created_at) return false;
+
+          const age = moment().diff(moment(activity.created_at), "milliseconds");
+
+          return age >= 0 && age < moment.duration(24, "hours").asMilliseconds();
         });
-        setActivities(recentActivities.slice().reverse());
+        setActivities([...recentActivities].reverse());
         setCurrentIndex(0);
       })
       .catch(() => {
